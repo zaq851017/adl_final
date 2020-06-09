@@ -1,4 +1,5 @@
 import os
+import torch
 import numpy as np
 import json
 import unicodedata
@@ -19,9 +20,9 @@ import pickle
 
 def getVal(char_input, word_input, char_tag):
     return {
-        'char_input': char_input,
-        'word_input': word_input,
-        'char_tag': char_tag,
+        'char_input': torch.tensor(char_input),
+        'word_input': torch.tensor(word_input),
+        'char_tag': torch.tensor(char_tag),
     }
 
 def setTag(texts, tags, values):
@@ -102,5 +103,5 @@ def preprocess(path, files):
 
 if __name__ == "__main__":
     textData = preprocess(config.train_path, config.train_files)
-    with open("textData.pkl", 'w') as f:
-        f = pickle.dumps(textData)
+    with open("textData.pkl", 'wb') as f:
+        pickle.dump(textData, f)
