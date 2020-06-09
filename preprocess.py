@@ -6,16 +6,10 @@ import pandas as pd
 import MeCab
 import re
 import torch
-from transformers import BertTokenizer
-
-train_path = "./release/train/ca_data/"
-train_files = os.listdir(train_path)
-mecab = MeCab.Tagger("-Owakati")
-
-tagName = ['', '調達年度', '都道府県', '入札件名', '施設名', '需要場所（住所）', '調達開始日', '調達終了日', '公告日', '仕様書交付期限', '質問票締切日時', '資格申請締切日時',
-           '入札書締切日時', '開札日時', '＊質問箇所所属／担当者', '＊質問箇所　ＴＥＬ／ＦＡＸ', '＊資格申請送付先', '＊資格申請送付先　部署／担当者名', '＊入札書送付先', '＊入札書送付先　部署／担当者名', '＊開札場所']
-
-
+from transformers import BertTokenizer, BertModel
+import ipdb
+import config
+import pickle
 # PRETRAINED_MODEL_NAME = "bert-base-japanese"
 
 # tokenizer = BertTokenizer.from_pretrained('.')
@@ -23,19 +17,12 @@ tagName = ['', '調達年度', '都道府県', '入札件名', '施設名', '需
 # ids = tokenizer.convert_tokens_to_ids(tokens)
 # print(ids)
 
-class Text():
-    def __init__(self, char_input, word_input, char_tag):
-        self.char_input = char_input
-        self.word_input = word_input
-        self.char_tag = char_tag
-
-    def getVal(self):
-        return {
-            'char_input': self.char_input,
-            'word_input': self.word_input,
-            'char_tag': self.char_tag,
-        }
-
+def getVal(char_input, word_input, char_tag):
+    return {
+        'char_input': char_input,
+        'word_input': word_input,
+        'char_tag': char_tag,
+    }
 
 def setTag(texts, tags, values):
     char_tag = torch.zeros(0, 21)
@@ -54,7 +41,7 @@ def setTag(texts, tags, values):
                 t = t.replace(" ", "")
                 v = v.replace(" ", "")
 
-                tagIdx = tagName.index(t)
+                tagIdx = t.index(t)
                 valStart = text.find(v)
                 valEnd = valStart + len(v)
 
@@ -70,7 +57,7 @@ def setInput(text):
     text = text.replace(" ", "")
     text = text.replace("\n", "")
 
-    parse_word = mecab.parse(text).split(' ')
+    parse_word = config.mecab.parse(text).split(' ')
     parse_word.remove('\n')
 
     char_input = list(text)
@@ -84,6 +71,8 @@ def setInput(text):
 
 
 def preprocess(path, files):
+    tokenizer = BertTokenizer.from_pretrained(config.bert, do_lower_case=True)
+    tokenizer_char = BertTokenizer.from_pretrained(config.bert_char, do_lower_case=True)
     textData = []
     for file in files:
         df = pd.read_excel(path + file)
@@ -100,7 +89,11 @@ def preprocess(path, files):
             char_tag = setTag(
                 text[start:end], tags[start:end], values[start:end])
             char_input, word_input = setInput(text[start:end])
-            textData.append(Text(char_input, word_input, char_tag))
+            word_input = tokenizer.convert_tokens_to_ids(word_input)
+            char_input = tokenizer_char.convert_tokens_to_ids(char_input)
+
+            #textData.append(Text(char_input, word_input, char_tag))
+            textData.append(getVal(char_input, word_input, char_tag))
 
             if char_tag.shape[0] != len(char_input):
                 print("ERRRRRRR!!")
@@ -108,4 +101,6 @@ def preprocess(path, files):
 
 
 if __name__ == "__main__":
-    textData = preprocess(train_path, train_files)
+    textData = preprocess(config.train_path, config.train_files)
+    with open("textData.pkl", 'w') as f:
+        f = pickle.dumps(textData)
