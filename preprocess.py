@@ -11,12 +11,7 @@ from transformers import BertTokenizer, BertModel
 import ipdb
 import config
 import pickle
-# PRETRAINED_MODEL_NAME = "bert-base-japanese"
 
-# tokenizer = BertTokenizer.from_pretrained('.')
-# tokens = tokenizer.tokenize('調達年度')
-# ids = tokenizer.convert_tokens_to_ids(tokens)
-# print(ids)
 
 def getVal(filename, char_input, word_input, char_tag):
     return {
@@ -25,6 +20,7 @@ def getVal(filename, char_input, word_input, char_tag):
         'word_input': torch.tensor(word_input),
         'char_tag': torch.tensor(char_tag),
     }
+
 
 def setTag(texts, tags, values):
     char_tag = torch.zeros(0, 21)
@@ -41,9 +37,12 @@ def setTag(texts, tags, values):
 
             for t, v in zip(tag, value):
                 t = t.replace(" ", "")
+                t = t.replace("＊", "")
                 v = v.replace(" ", "")
 
-                tagIdx = t.index(t)
+                tagIdx = config.tagName.index(t)
+                if tagIdx == 0:
+                    print("ERROR: Find unknown tag!!!")
                 valStart = text.find(v)
                 valEnd = valStart + len(v)
 
@@ -66,14 +65,15 @@ def setInput(text):
     for word in parse_word:
         word_input.extend([word for i in range(len(word))])
     if len(char_input) != len(word_input):
-        print("ERRRRRRR!!")
+        print("ERROR: length of char and length of word are not match!!")
 
     return char_input, word_input
 
 
 def preprocess(path, files):
     tokenizer = BertTokenizer.from_pretrained(config.bert, do_lower_case=True)
-    tokenizer_char = BertTokenizer.from_pretrained(config.bert_char, do_lower_case=True)
+    tokenizer_char = BertTokenizer.from_pretrained(
+        config.bert_char, do_lower_case=True)
     textData = []
     for file in files:
         df = pd.read_excel(path + file)
@@ -90,23 +90,24 @@ def preprocess(path, files):
             char_tag = setTag(
                 text[start:end], tags[start:end], values[start:end])
             char_input, word_input = setInput(text[start:end])
-            #ipdb.set_trace()
+            # ipdb.set_trace()
             word_input = tokenizer.encode(word_input)
             char_input = tokenizer_char.encode(char_input)
             other = torch.tensor([[0.]*20 + [1.]])
-            #ipdb.set_trace()
-            char_tag = torch.cat((other, char_tag), 0) #[CLS]
-            char_tag = torch.cat((char_tag, other), 0) #[SEP]       
+            # ipdb.set_trace()
+            char_tag = torch.cat((other, char_tag), 0)  # [CLS]
+            char_tag = torch.cat((char_tag, other), 0)  # [SEP]
 
             #textData.append(Text(char_input, word_input, char_tag))
             textData.append(getVal(file, char_input, word_input, char_tag))
 
             if char_tag.shape[0] != len(char_input):
-                print("ERRRRRRR!!")
+                # print(f"{char_tag.shape[0]}, {len(char_input)}")
+                print("ERROR: length of char and length of tag are not match!!")
     return textData
 
 
 if __name__ == "__main__":
     textData = preprocess(config.train_path, config.train_files)
-    with open("textData.pkl", 'wb') as f:
-        pickle.dump(textData, f)
+    # with open("textData.pkl", 'wb') as f:
+    #     pickle.dump(textData, f)
