@@ -18,8 +18,9 @@ import pickle
 # ids = tokenizer.convert_tokens_to_ids(tokens)
 # print(ids)
 
-def getVal(char_input, word_input, char_tag):
+def getVal(filename, char_input, word_input, char_tag):
     return {
+        'name': filename,
         'char_input': torch.tensor(char_input),
         'word_input': torch.tensor(word_input),
         'char_tag': torch.tensor(char_tag),
@@ -98,7 +99,7 @@ def preprocess(path, files):
             char_tag = torch.cat((char_tag, other), 0) #[SEP]       
 
             #textData.append(Text(char_input, word_input, char_tag))
-            textData.append(getVal(char_input, word_input, char_tag))
+            textData.append(getVal(file, char_input, word_input, char_tag))
 
             if char_tag.shape[0] != len(char_input):
                 print("ERRRRRRR!!")

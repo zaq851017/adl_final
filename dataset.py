@@ -16,6 +16,6 @@ class NERset(Dataset):
 
 if __name__ == "__main__":
     dataset = NERset()
-    dataloader = DataLoader(dataset, batch_size=5, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
     for data in dataloader:
         ipdb.set_trace()
