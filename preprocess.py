@@ -49,7 +49,6 @@ def setTag(texts, tags, values):
                 tagVal[valStart:valEnd, tagIdx] = 1
                 tagVal[valStart:valEnd, 0] = 0
         char_tag = torch.cat((char_tag, tagVal), 0)
-
     return char_tag
 
 
@@ -90,8 +89,13 @@ def preprocess(path, files):
             char_tag = setTag(
                 text[start:end], tags[start:end], values[start:end])
             char_input, word_input = setInput(text[start:end])
-            word_input = tokenizer.convert_tokens_to_ids(word_input)
-            char_input = tokenizer_char.convert_tokens_to_ids(char_input)
+            #ipdb.set_trace()
+            word_input = tokenizer.encode(word_input)
+            char_input = tokenizer_char.encode(char_input)
+            other = torch.tensor([[0.]*20 + [1.]])
+            #ipdb.set_trace()
+            char_tag = torch.cat((other, char_tag), 0) #[CLS]
+            char_tag = torch.cat((char_tag, other), 0) #[SEP]       
 
             #textData.append(Text(char_input, word_input, char_tag))
             textData.append(getVal(char_input, word_input, char_tag))
