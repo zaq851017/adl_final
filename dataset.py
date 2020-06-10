@@ -46,8 +46,6 @@ class NERset(Dataset):
         
         for i in range(len(before_pad_length)):
             for j in range(max_pad_length-before_pad_length[i]):
-                #print(label_tensors[i].shape)
-                #print(other_label.shape)
                 label_tensors[i] = torch.cat((label_tensors[i],other_label),0)
         r_label_tensors=torch.stack([i for i in (label_tensors)])
             
