@@ -19,7 +19,7 @@ class NERset(Dataset):
             label_ids = None
         find_sep = np.argwhere(char_tokens_tensors==3)
         
-        thesis_or_context=find_sep[0][0].item()
+        thesis_or_context=find_sep[0][0].item()+1
         segments_tensor = torch.tensor([0]*thesis_or_context +[1]*(char_tokens_tensors.shape[0]-thesis_or_context))
         
         context_len= char_tokens_tensors.shape[0]
