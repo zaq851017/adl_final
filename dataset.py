@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 import pickle
 from torch.nn.utils.rnn import pad_sequence
 import numpy as np
+
 class NERset(Dataset):
     def __init__(self,mode):
         with open("textData.pkl", "rb") as f:
@@ -10,76 +11,95 @@ class NERset(Dataset):
             self.train_or_test = mode
 
     def __getitem__(self, index):
-        name = self.data[index]['name']
-        char_tokens_tensors = self.data[index]['char_input']
-        word_tokens_tensors = self.data[index]['word_input']
+        # sample[0]:name
+        # sample[1]:text_tag
+        # sample[2]:segments_tensor
+        # sample[3]:answer_able
+        # sample[4]:start_label
+        # sample[5]:end_label
+        name = self.data[index]['file']
+        text_tokens_tensors = self.data[index]['text']
+        tag_tokens_tensors = self.data[index]['tag']
         if self.train_or_test=='train':
-            label_ids = self.data[index]['char_tag']
-        else:
-            label_ids = None
-        find_sep = np.argwhere(char_tokens_tensors==3)
+            start_label_ids = self.data[index]['val_start']
+            end_label_ids = self.data[index]['val_end']
+            answer_able = self.data[index]['able']
+        elif self.train_or_test=='test':
+            start_label_ids = None
+            end_label_ids = None
+            answer_able = None
+        #segments_tensor = torch.tensor([0]* +[1]*)
+        text_len = text_tokens_tensors.shape[0]
+        tag_len = tag_tokens_tensors.shape[0]
+        segments_tensor = torch.tensor([0]*text_len +[1]*tag_len)
+        text_tag_tensors = torch.cat((text_tokens_tensors,tag_tokens_tensors))
         
-        thesis_or_context=find_sep[0][0].item()+1
-        segments_tensor = torch.tensor([0]*thesis_or_context +[1]*(char_tokens_tensors.shape[0]-thesis_or_context))
-        
-        context_len= char_tokens_tensors.shape[0]
-        if context_len >=512:
+        total_len = text_len + tag_len
+        # max_tag_len = 16
+        # max_text_len = 1003
+        if total_len >=512:
+            text_tokens_tensors = self.data[index]['text'][0:495]
+            
             sep_tensor = torch.tensor([3])
-            other_label = torch.tensor([1]*1+[0]*20,dtype=torch.float)
-            other_label = torch.unsqueeze(other_label,0)
-            char_tokens_tensors = char_tokens_tensors[0:511]
-            word_tokens_tensors = word_tokens_tensors[0:511]
-            segments_tensor = segments_tensor[0:512]
-            label_ids = label_ids[0:511]
-            char_tokens_tensors = torch.cat( (char_tokens_tensors, sep_tensor),0)
-            word_tokens_tensors = torch.cat( (word_tokens_tensors, sep_tensor),0)
-            label_ids = torch.cat((label_ids,other_label),0)
-        return (name,char_tokens_tensors,word_tokens_tensors,segments_tensor,label_ids)
+            text_tag_tensors = torch.cat((text_tokens_tensors,sep_tensor))
+            
+            text_tag_tensors = torch.cat((text_tag_tensors,tag_tokens_tensors))
+            text_len = 496
+            segments_tensor = torch.tensor([0]*text_len +[1]*tag_len)
+            
+            
+        
+        if end_label_ids !=None and end_label_ids > text_len:
+            answer_able = 0
+            start_label_ids = -1
+            end_label_ids = -1
+            
+        
+        return (name,text_tag_tensors,segments_tensor,answer_able,start_label_ids,end_label_ids)
+        
 
     def __len__(self):
         return len(self.data)
     def create_mini_batch(self,samples):
         # sample[0]:name
-        # sample[1]:char
-        # sample[2]:word
-        # sample[3]:segments
-        # sample[4]:mask
-        # sample[5]:label
+        # sample[1]:text_tag
+        # sample[2]:segments_tensor
+        # sample[3]:mask_tensor
+        # sample[4]:answer_able
+        # sample[5]:start_label
+        # sample[6]:end_label
+       
         
         name = [s[0] for s in samples]
-        char_tokens_tensors = [s[1] for s in samples]
-        word_tokens_tensors = [s[2] for s in samples]
-        segments_tensors = [s[3] for s in samples]
+        text_tag_tensors = [s[1] for s in samples]
+        segments_tensors = [s[2] for s in samples]
         if self.train_or_test=='train':
-            label_tensors= [s[4] for s in samples]
+            answerable = [s[3] for s in samples]
+            start_tensors= [s[4] for s in samples]
+            end_tensors= [s[5] for s in samples]
         else:
-            label_tensors=None
+            answerable =None
+            start_tensors = None
+            end_tensors= None
         
-        before_pad_length=[]
-        for i in range(len(char_tokens_tensors)):
-            before_pad_length.append(char_tokens_tensors[i].shape[0])
-        
-        char_tokens_tensors = pad_sequence(char_tokens_tensors,batch_first=True)
-        word_tokens_tensors = pad_sequence(word_tokens_tensors,batch_first=True)
+       
+        text_tag_tensors = pad_sequence(text_tag_tensors,batch_first=True)
         segments_tensors = pad_sequence(segments_tensors,batch_first=True)
-        max_pad_length = char_tokens_tensors[0].shape[0]
-        masks_tensors = torch.zeros(char_tokens_tensors.shape,dtype=torch.long)
-        masks_tensors = masks_tensors.masked_fill(char_tokens_tensors != 0, 1)
-        if self.train_or_test=='train':
-            other_label = torch.tensor([1]*1+[0]*20,dtype=torch.float)
-            other_label = torch.unsqueeze(other_label,0)
-            for i in range(len(before_pad_length)):
-                for j in range(max_pad_length-before_pad_length[i]):
-                    label_tensors[i] = torch.cat((label_tensors[i],other_label),0)
-            r_label_tensors=torch.stack([i for i in (label_tensors)])
-        else:
-            r_label_tensors=None
+        masks_tensors = torch.zeros(text_tag_tensors.shape,dtype=torch.long)
+        masks_tensors = masks_tensors.masked_fill(text_tag_tensors != 0, 1)
+        answerable = torch.tensor([i for i in (answerable)])
+        start_tensors  = torch.tensor([i for i in (start_tensors)])
+        end_tensors = torch.tensor([i for i in (end_tensors)])
+        
             
-        return name,char_tokens_tensors,word_tokens_tensors,segments_tensors,masks_tensors,r_label_tensors
+        return name,text_tag_tensors,segments_tensors,masks_tensors,answerable,start_tensors,end_tensors
 
 if __name__ == "__main__":
+    
     dataset = NERset('train')
-    dataloader = DataLoader(dataset, batch_size=3, shuffle=False,collate_fn=dataset.create_mini_batch)
-    print(len(dataloader))
+    dataloader = DataLoader(dataset, batch_size=6, shuffle=False,collate_fn=dataset.create_mini_batch)
+    #dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
     for i,data in enumerate(dataloader):
-        if data[1].shape[1]>=512:
+        if data[1].shape[1] >500:
+            print(data)
+            print(data[1].shape,data[2].shape,data[3].shape,data[4].shape,data[5].shape,data[6].shape)
