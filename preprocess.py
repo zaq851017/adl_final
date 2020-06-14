@@ -5,21 +5,21 @@ import json
 import unicodedata
 import pandas as pd
 import MeCab
-import re
 import torch
 from transformers import BertTokenizer, BertModel
-import ipdb
 import config
 import pickle
 from tqdm import tqdm
 
 
-def getVal(filename, char_input, word_input, char_tag):
+def initText(file, text, tag, val_start, val_end, able):
     return {
-        'name': filename,
-        'char_input': torch.tensor(char_input),
-        'word_input': torch.tensor(word_input),
-        'char_tag': char_tag,
+        'file': file,
+        'text': text,
+        'tag': tag,
+        'val_start': val_start,
+        'val_end': val_end,
+        'able': able
     }
 
 
@@ -29,128 +29,115 @@ def removeSpace(inputStr):
     return outputStr
 
 
-def setTag(title, texts, tags, values):
-    title = removeSpace(title)
-    char_tag = torch.zeros(len(title) + 2, 21)  # [CLS] + title + [SEP]
-    char_tag[:, 0] = 1
-    for index, text in enumerate(texts):
-        text = removeSpace(text)
-        tagVal = torch.zeros(len(text), 21)
-        tagVal[:, 0] = 1
-        tag = tags[index]
+def textTokenize(text):
+    tokenizer_char = BertTokenizer.from_pretrained(
+        config.bert_char, do_lower_case=True)
+    text = list(text)
+    textToken = tokenizer_char.encode(text)
+    textToken = torch.tensor(textToken)
+    return textToken
+
+
+def tagTokenize(tag):
+    tokenizer_char = BertTokenizer.from_pretrained(
+        config.bert_char, do_lower_case=True)
+    tag = list(tag)
+    tagToken = tokenizer_char.encode(tag)
+    tagToken.pop(0)
+    tagToken = torch.tensor(tagToken)
+    return tagToken
+
+
+def setText(filename, texts, tags, values):
+    textStr = removeSpace(''.join(texts))
+    textData = []
+    hasTag, hasValue = [], []
+    for index, tag in enumerate(tags):
         if type(tag) == str:  # if tag is found
             value = values[index]
             tag = tag.split(';')
+            tag = [removeSpace(t).replace("＊", "") for t in tag]
             value = value.split(';')
+            value = [removeSpace(v) for v in value]
+            if len(tag) == 1 and len(value) > 1:
+                v = value[0]
+                value = [v]
+            if len(value) == 1 and len(tag) > 1:
+                v = value[0]
+                value = [v for i in range(len(tag))]
+            hasTag.extend(tag)
+            hasValue.extend(value)
 
-            for t, v in zip(tag, value):
-                t = removeSpace(t)
-                t = t.replace("＊", "")
-                v = removeSpace(v)
+    for t in config.tagName:
+        if t in hasTag:
+            index = [idx for idx, tag in enumerate(hasTag) if tag == t]
+            all_start, all_end = [], []
+            for i in index:
+                v = hasValue[i]
+                start = textStr.find(v)
+                all_start.append(start)
+                all_end.append(start + len(v))
+            val_start = min(all_start)
+            val_end = max(all_end)
+            textToken = textTokenize(textStr)
+            tagToken = tagTokenize(t)
+            textData.append(initText(filename, textToken,
+                                     tagToken, val_start + 1, val_end + 1, 1))
+        else:
+            textToken = textTokenize(textStr)
+            tagToken = tagTokenize(t)
+            textData.append(initText(filename, textToken, tagToken, -1, -1, 0))
 
-                tagIdx = config.tagName.index(t)
-                if tagIdx == 0:
-                    print("ERROR: Find unknown tag!!!")
-                valStart = text.find(v)
-                valEnd = valStart + len(v)
-
-                tagVal[valStart:valEnd, tagIdx] = 1
-                tagVal[valStart:valEnd, 0] = 0
-        char_tag = torch.cat((char_tag, tagVal), 0)
-
-    sep_tag = torch.tensor([[1.] + [0.] * 20])
-    char_tag = torch.cat((char_tag, sep_tag), 0)  # [SEP]
-
-    return char_tag
-
-
-def parsing(text):
-    text = removeSpace(text)
-    parse_word = config.mecab.parse(text).split(' ')
-    parse_word.remove('\n')
-    word_input = []
-    for word in parse_word:
-        word_input.extend([word for i in range(len(word))])
-
-    char_input = list(text)
-
-    return word_input, char_input
-
-
-def tokenCat(tokenizer, title, text):
-    title = tokenizer.encode(title)
-    text = tokenizer.encode(text)
-    text.pop(0)  # Remove [CLS] of text
-    inputs = title + text
-
-    return inputs
-
-
-def setInput(title, text):
-    tokenizer_word = BertTokenizer.from_pretrained(
-        config.bert, do_lower_case=True)
-    tokenizer_char = BertTokenizer.from_pretrained(
-        config.bert_char, do_lower_case=True)
-
-    text = ''.join(text)
-
-    word_title, char_title = parsing(title)
-    word_text, char_text = parsing(text)
-
-    word_input = tokenCat(tokenizer_word, word_title, word_text)
-    char_input = tokenCat(tokenizer_char, char_title, char_text)
-
-    if len(char_input) != len(word_input):
-        print("ERROR: length of char and length of word are not match!!")
-
-    # print(tokenizer_word.convert_ids_to_tokens(word_input))
-    # print(tokenizer_char.convert_ids_to_tokens(char_input))
-
-    return char_input, word_input
+    return textData
 
 
 def preprocess(path, files):
     textData = []
     for file in tqdm(files, desc='Preprocessing', dynamic_ncols=True):
         df = pd.read_excel(path + file)
-        # find the index of each title
-        titleIdx = df[df['Parent Index'] == 1].index.tolist()
-        titleIdx.append(df.shape[0])
 
         text = df['Text'].tolist()
         tags = df['Tag'].tolist()
         values = df['Value'].tolist()
         textIdx = df['Index'].tolist()
+        parIdx = df['Parent Index'].tolist()
+        isTitle = df['Is Title'].tolist()
+        newText = [removeSpace(t) for t in text]
+        if '入札公告' in newText:
+            title = newText.index('入札公告') + 1
+        elif '入札公告（再度公告）' in newText:
+            title = newText.index('入札公告（再度公告）') + 1
+        else:
+            title = 1
+
+        # find the index of each title
+        titleIdx = df[df['Parent Index'] == title].index.tolist()
+        titleIdx.append(df.shape[0])
+
+        beginTextIdx = []
+        for i in range(10):
+            if parIdx[i] == title and isTitle[i] != 'x':
+                beginTextIdx.append(i)
+
+        start = min(beginTextIdx)
+        end = max(beginTextIdx)
+        if start < end:
+            textData.extend(
+                setText(file, text[start:end], tags[start:end], values[start:end]))
 
         for i in range(len(titleIdx) - 1):
             curTitle = titleIdx[i]
             nextTitle = titleIdx[i + 1]
-            secTitle = text[curTitle]
             secTitleIdx = textIdx[curTitle]
             # find the index of second title
             textBound = df[df['Parent Index'] == secTitleIdx].index.tolist()
             textBound.append(nextTitle)
 
-            if len(textBound) == 1 and textBound[0] < 8:
-                idx = int(textBound[0] - 1)
-                char_tag = setTag(text[0], [text[idx]], [
-                                  tags[idx]], [values[idx]])
-                char_input, word_input = setInput(text[0], [text[idx]])
-                textData.append(getVal(file, char_input, word_input, char_tag))
-                if char_tag.shape[0] != len(char_input):
-                    print("ERROR: length of char and length of tag are not match!!")
-
             for i in range(len(textBound) - 1):
                 start, end = textBound[i:i+2]
-                char_tag = setTag(
-                    secTitle, text[start:end], tags[start:end], values[start:end])
-                char_input, word_input = setInput(secTitle, text[start:end])
-
-                textData.append(getVal(file, char_input, word_input, char_tag))
-
-                if char_tag.shape[0] != len(char_input):
-                    print("ERROR: length of char and length of tag are not match!!")
-
+                if start < end:
+                    textData.extend(setText(
+                        file, text[start:end], tags[start:end], values[start:end]))
     return textData
 
 
