@@ -28,7 +28,6 @@ class NERset(Dataset):
             start_label_ids = None
             end_label_ids = None
             answer_able = None
-        #segments_tensor = torch.tensor([0]* +[1]*)
         text_len = text_tokens_tensors.shape[0]
         tag_len = tag_tokens_tensors.shape[0]
         segments_tensor = torch.tensor([0]*text_len +[1]*tag_len)
@@ -77,6 +76,9 @@ class NERset(Dataset):
             answerable = [s[3] for s in samples]
             start_tensors= [s[4] for s in samples]
             end_tensors= [s[5] for s in samples]
+            answerable = torch.tensor([i for i in (answerable)])
+            start_tensors  = torch.tensor([i for i in (start_tensors)])
+            end_tensors = torch.tensor([i for i in (end_tensors)])
         else:
             answerable =None
             start_tensors = None
@@ -87,9 +89,6 @@ class NERset(Dataset):
         segments_tensors = pad_sequence(segments_tensors,batch_first=True)
         masks_tensors = torch.zeros(text_tag_tensors.shape,dtype=torch.long)
         masks_tensors = masks_tensors.masked_fill(text_tag_tensors != 0, 1)
-        answerable = torch.tensor([i for i in (answerable)])
-        start_tensors  = torch.tensor([i for i in (start_tensors)])
-        end_tensors = torch.tensor([i for i in (end_tensors)])
         
             
         return name,text_tag_tensors,segments_tensors,masks_tensors,answerable,start_tensors,end_tensors
