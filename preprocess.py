@@ -12,14 +12,16 @@ import pickle
 from tqdm import tqdm
 
 
-def initText(file, text, tag, val_start, val_end, able):
+def initText(file, text, tag, val_start, val_end, able, index, index_bound):
     return {
         'file': file,
         'text': text,
         'tag': tag,
         'val_start': val_start,
         'val_end': val_end,
-        'able': able
+        'able': able,
+        'index': index,
+        'index_bound': index_bound
     }
 
 
@@ -48,7 +50,21 @@ def tagTokenize(tag):
     return tagToken
 
 
-def setText(filename, texts, tags, values):
+def setBound(texts):
+    prevBound = 1
+    index_bound = []
+    for i, text in enumerate(texts):
+        if i == 0:
+            prevBound += len(removeSpace(text))
+        else:
+            index_bound.append([prevBound, prevBound + len(removeSpace(text))])
+            prevBound += len(removeSpace(text))
+    return index_bound
+
+
+def setText(filename, texts, tags, values, textIdx):
+    index_bound = setBound(texts)
+
     textStr = removeSpace(''.join(texts))
     textData = []
     hasTag, hasValue = [], []
@@ -81,12 +97,13 @@ def setText(filename, texts, tags, values):
             val_end = max(all_end)
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
-            textData.append(initText(filename, textToken,
-                                     tagToken, val_start + 1, val_end + 1, 1))
+            textData.append(initText(filename, textToken, tagToken,
+                                     val_start + 1, val_end + 1, 1, textIdx, index_bound))
         else:
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
-            textData.append(initText(filename, textToken, tagToken, -1, -1, 0))
+            textData.append(initText(filename, textToken, tagToken, -
+                                     1, -1, 0, textIdx, index_bound))
 
     return textData
 
@@ -138,10 +155,55 @@ def preprocess(path, files):
                 if start < end:
                     textData.extend(setText(
                         file, text[start:end], tags[start:end], values[start:end]))
+
+    return textData
+
+
+def findParent(idx, textIdx, parIdx):
+    level = 0
+    if parIdx[idx] == 1:
+        level += 1
+        idx = int(textIdx.index(parIdx[idx]))
+    else:
+        while parIdx[idx] != 1:
+            level += 1
+            idx = int(textIdx.index(parIdx[idx]))
+    return idx, level
+
+
+def preprocess_test(path, files):
+    textData = []
+    for file in tqdm(files, desc='Preprocessing', dynamic_ncols=True):
+        df = pd.read_excel(path + file)
+        fileLen = df.shape[0]
+
+        text = df['Text'].tolist()
+        tags = df['Tag'].tolist()
+        values = df['Value'].tolist()
+        textIdx = df['Index'].tolist()
+        parIdx = df['Parent Index'].tolist()
+        isTitle = df['Is Title'].tolist()
+
+        titleIdx = [i for i, title in enumerate(isTitle) if title == 'x']
+        titleIdx.append(fileLen)
+
+        for i in range(len(titleIdx) - 1):
+            start, end = titleIdx[i:i+2]
+            if end - start > 1:
+                parentIdx, level = findParent(start+1, textIdx, parIdx)
+                if level == 1:
+                    inputText = text[start:end]
+                    textData.extend(setText(
+                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start+1:end]))
+                else:
+                    inputText = [text[parentIdx]] + text[start:end]
+                    textData.extend(setText(
+                        file, inputText, tags[start:end], values[start:end], textIdx[start:end]))
     return textData
 
 
 if __name__ == "__main__":
-    textData = preprocess(config.train_path, config.train_files)
-    with open("textData.pkl", 'wb') as f:
+    # textData = preprocess(config.train_path, config.train_files)
+    textData = preprocess_test(config.train_path, config.train_files)
+    with open("textData_new.pkl", 'wb') as f:
         pickle.dump(textData, f)

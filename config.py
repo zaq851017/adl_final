@@ -5,6 +5,10 @@ save_dir = './logs'
 
 train_path = "./release/train/ca_data/"
 train_files = os.listdir(train_path)
+
+test_path = "./release/test/ca_data/"
+test_files = os.listdir(test_path)
+
 bert = "./model/bert-base-japanese"
 bert_char = "./model/bert-base-japanese-char"
 mecab = MeCab.Tagger("-Owakati")
