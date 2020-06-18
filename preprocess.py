@@ -12,7 +12,7 @@ import pickle
 from tqdm import tqdm
 
 
-def initText(file, text, tag, val_start, val_end, able, index, index_bound):
+def initText(file, text, tag, val_start, val_end, able, index, index_bound, fileLen):
     return {
         'file': file,
         'text': text,
@@ -21,7 +21,8 @@ def initText(file, text, tag, val_start, val_end, able, index, index_bound):
         'val_end': val_end,
         'able': able,
         'index': index,
-        'index_bound': index_bound
+        'index_bound': index_bound,
+        'fileLen': fileLen
     }
 
 
@@ -62,7 +63,7 @@ def setBound(texts):
     return index_bound
 
 
-def setText(filename, texts, tags, values, textIdx):
+def setText(filename, texts, tags, values, textIdx, fileLen):
     index_bound = setBound(texts)
 
     textStr = removeSpace(''.join(texts))
@@ -98,65 +99,63 @@ def setText(filename, texts, tags, values, textIdx):
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
             textData.append(initText(filename, textToken, tagToken,
-                                     val_start + 1, val_end + 1, 1, textIdx, index_bound))
+                                     val_start + 1, val_end + 1, 1, textIdx, index_bound, fileLen))
         else:
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
-            textData.append(initText(filename, textToken, tagToken, -
-                                     1, -1, 0, textIdx, index_bound))
-
+            textData.append(initText(filename, textToken,
+                                     tagToken, -1, -1, 0, textIdx, index_bound, fileLen))
     return textData
 
 
-def preprocess(path, files):
-    textData = []
-    for file in tqdm(files, desc='Preprocessing', dynamic_ncols=True):
-        df = pd.read_excel(path + file)
+# def preprocess(path, files):
+#     textData = []
+#     for file in tqdm(files, desc='Preprocessing', dynamic_ncols=True):
+#         df = pd.read_excel(path + file)
 
-        text = df['Text'].tolist()
-        tags = df['Tag'].tolist()
-        values = df['Value'].tolist()
-        textIdx = df['Index'].tolist()
-        parIdx = df['Parent Index'].tolist()
-        isTitle = df['Is Title'].tolist()
-        newText = [removeSpace(t) for t in text]
-        if '入札公告' in newText:
-            title = newText.index('入札公告') + 1
-        elif '入札公告（再度公告）' in newText:
-            title = newText.index('入札公告（再度公告）') + 1
-        else:
-            title = 1
+#         text = df['Text'].tolist()
+#         tags = df['Tag'].tolist()
+#         values = df['Value'].tolist()
+#         textIdx = df['Index'].tolist()
+#         parIdx = df['Parent Index'].tolist()
+#         isTitle = df['Is Title'].tolist()
+#         newText = [removeSpace(t) for t in text]
+#         if '入札公告' in newText:
+#             title = newText.index('入札公告') + 1
+#         elif '入札公告（再度公告）' in newText:
+#             title = newText.index('入札公告（再度公告）') + 1
+#         else:
+#             title = 1
 
-        # find the index of each title
-        titleIdx = df[df['Parent Index'] == title].index.tolist()
-        titleIdx.append(df.shape[0])
+#         # find the index of each title
+#         titleIdx = df[df['Parent Index'] == title].index.tolist()
+#         titleIdx.append(df.shape[0])
 
-        beginTextIdx = []
-        for i in range(10):
-            if parIdx[i] == title and isTitle[i] != 'x':
-                beginTextIdx.append(i)
+#         beginTextIdx = []
+#         for i in range(10):
+#             if parIdx[i] == title and isTitle[i] != 'x':
+#                 beginTextIdx.append(i)
 
-        start = min(beginTextIdx)
-        end = max(beginTextIdx)
-        if start < end:
-            textData.extend(
-                setText(file, text[start:end], tags[start:end], values[start:end]))
+#         start = min(beginTextIdx)
+#         end = max(beginTextIdx)
+#         if start < end:
+#             textData.extend(
+#                 setText(file, text[start:end], tags[start:end], values[start:end]))
 
-        for i in range(len(titleIdx) - 1):
-            curTitle = titleIdx[i]
-            nextTitle = titleIdx[i + 1]
-            secTitleIdx = textIdx[curTitle]
-            # find the index of second title
-            textBound = df[df['Parent Index'] == secTitleIdx].index.tolist()
-            textBound.append(nextTitle)
+#         for i in range(len(titleIdx) - 1):
+#             curTitle = titleIdx[i]
+#             nextTitle = titleIdx[i + 1]
+#             secTitleIdx = textIdx[curTitle]
+#             # find the index of second title
+#             textBound = df[df['Parent Index'] == secTitleIdx].index.tolist()
+#             textBound.append(nextTitle)
 
-            for i in range(len(textBound) - 1):
-                start, end = textBound[i:i+2]
-                if start < end:
-                    textData.extend(setText(
-                        file, text[start:end], tags[start:end], values[start:end]))
-
-    return textData
+#             for i in range(len(textBound) - 1):
+#                 start, end = textBound[i:i+2]
+#                 if start < end:
+#                     textData.extend(setText(
+#                         file, text[start:end], tags[start:end], values[start:end]))
+#     return textData
 
 
 def findParent(idx, textIdx, parIdx):
@@ -171,18 +170,18 @@ def findParent(idx, textIdx, parIdx):
     return idx, level
 
 
-def preprocess_test(path, files):
+def preprocess_new(path, files):
     textData = []
     for file in tqdm(files, desc='Preprocessing', dynamic_ncols=True):
         df = pd.read_excel(path + file)
         fileLen = df.shape[0]
 
         text = df['Text'].tolist()
-        tags = df['Tag'].tolist()
-        values = df['Value'].tolist()
         textIdx = df['Index'].tolist()
         parIdx = df['Parent Index'].tolist()
         isTitle = df['Is Title'].tolist()
+        tags = df['Tag'].tolist()
+        values = df['Value'].tolist()
 
         titleIdx = [i for i, title in enumerate(isTitle) if title == 'x']
         titleIdx.append(fileLen)
@@ -194,16 +193,16 @@ def preprocess_test(path, files):
                 if level == 1:
                     inputText = text[start:end]
                     textData.extend(setText(
-                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start+1:end]))
+                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start+1:end], fileLen))
                 else:
                     inputText = [text[parentIdx]] + text[start:end]
                     textData.extend(setText(
-                        file, inputText, tags[start:end], values[start:end], textIdx[start:end]))
+                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start+1:end], fileLen))
     return textData
 
 
 if __name__ == "__main__":
     # textData = preprocess(config.train_path, config.train_files)
-    textData = preprocess_test(config.train_path, config.train_files)
-    with open("textData_new.pkl", 'wb') as f:
+    textData = preprocess_new(config.test_path, config.test_files)
+    with open("textData_test.pkl", 'wb') as f:
         pickle.dump(textData, f)
