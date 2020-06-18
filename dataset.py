@@ -5,7 +5,8 @@ from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 
 class NERset(Dataset):
-    def __init__(self,root,mode):
+    def __init__(self,mode):
+        root = 'textData_' + mode + '.pkl'
         with open(root, "rb") as f:
             self.data = pickle.load(f)
         self.train_or_test = mode
@@ -104,13 +105,13 @@ class NERset(Dataset):
 
 if __name__ == "__main__":
     ## usage of train
-    dataset = NERset(root='textData_new.pkl',mode='train')
+    dataset = NERset(mode='train')
     dataloader = DataLoader(dataset, batch_size=6, shuffle=False,collate_fn=dataset.create_mini_batch)
     for i,data in enumerate(dataloader):
         if data[1].shape[1] >500:
             print(data)
     ## usage of test
-    dataset = NERset(root='textData_test.pkl',mode='test')
+    dataset = NERset(mode='test')
     dataloader = DataLoader(dataset, batch_size=6, shuffle=False,collate_fn=dataset.create_mini_batch)
     for i,data in enumerate(dataloader):
         if data[1].shape[1] >500:

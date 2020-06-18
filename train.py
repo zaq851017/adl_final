@@ -9,6 +9,7 @@ import torch.optim as optim
 import torch.nn as nn
 from dataset import NERset
 from backbone import NERnet
+import config
 import ipdb
 import sys 
 from datetime import datetime
@@ -22,7 +23,6 @@ def train(args):
         os.mkdir(root)
     except:
         pass
-    log = open(os.path.join(root, "train.log"), "w")
     # gpu init
     multi_gpus = False
     if len(args.gpus.split(',')) > 1:
@@ -43,7 +43,7 @@ def train(args):
 
     threshold = torch.tensor([args.threshold]).to(device)
     optimizer = optim.AdamW(net.parameters(),lr = args.lr, weight_decay=args.weight_decay)
-    criterion1 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([0.5]).cuda()).to(device)
+    criterion1 = nn.BCEWithLogitsLoss().to(device)
     criterion2 = nn.CrossEntropyLoss(ignore_index=-1).to(device)
 
     for epoch in range(20):
@@ -56,7 +56,7 @@ def train(args):
             sys.stdout.write("    Train Batch: {}/{}\r".format(batch, len(trainloader)))
             sys.stdout.flush()
             net.zero_grad()
-            name, text, seg, mask, answerable, start, end = data
+            name, text, seg, mask, index, index_bound, answerable, start, end = data
             text = text.to(device)
             seg = seg.to(device)
             mask = mask.to(device)
@@ -87,17 +87,6 @@ def train(args):
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath)   
 
-
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='ADL')
-    parser.add_argument('--batch_size', type=int)
-    parser.add_argument('--threshold', type=float, default=0.5)
-    parser.add_argument('--lr', type=float, default=0.00001)
-    parser.add_argument('--weight_decay', type=float, default=0)
-    parser.add_argument('--gpus', type=str, default='0,1,2', help='model prefix')
-
-    args = parser.parse_args()
-
+    args = config.args
     train(args)
