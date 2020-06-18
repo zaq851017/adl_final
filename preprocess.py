@@ -10,9 +10,10 @@ from transformers import BertTokenizer, BertModel
 import config
 import pickle
 from tqdm import tqdm
+import ipdb
 
 
-def initText(file, text, tag, val_start, val_end, able, index, index_bound, fileLen):
+def initText(file, text, tag, val_start, val_end, able, index, index_bound, fileLen, text_decode, tag_decode):
     return {
         'file': file,
         'text': text,
@@ -22,7 +23,9 @@ def initText(file, text, tag, val_start, val_end, able, index, index_bound, file
         'able': able,
         'index': index,
         'index_bound': index_bound,
-        'fileLen': fileLen
+        'fileLen': fileLen,
+        'text_decode': text_decode,
+        'tag_decode': tag_decode
     }
 
 
@@ -99,12 +102,12 @@ def setText(filename, texts, tags, values, textIdx, fileLen):
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
             textData.append(initText(filename, textToken, tagToken,
-                                     val_start + 1, val_end + 1, 1, textIdx, index_bound, fileLen))
+                                     val_start + 1, val_end + 1, 1, textIdx, index_bound, fileLen, textStr, t))
         else:
             textToken = textTokenize(textStr)
             tagToken = tagTokenize(t)
             textData.append(initText(filename, textToken,
-                                     tagToken, -1, -1, 0, textIdx, index_bound, fileLen))
+                                     tagToken, -1, -1, 0, textIdx, index_bound, fileLen, textStr, t))
     return textData
 
 
@@ -158,13 +161,13 @@ def setText(filename, texts, tags, values, textIdx, fileLen):
 #     return textData
 
 
-def findParent(idx, textIdx, parIdx):
+def findParent(idx, textIdx, parIdx, root):
     level = 0
-    if parIdx[idx] == 1:
+    if parIdx[idx] == root:
         level += 1
         idx = int(textIdx.index(parIdx[idx]))
     else:
-        while parIdx[idx] != 1:
+        while parIdx[idx] != root:
             level += 1
             idx = int(textIdx.index(parIdx[idx]))
     return idx, level
@@ -182,14 +185,14 @@ def preprocess_new(path, files):
         isTitle = df['Is Title'].tolist()
         tags = df['Tag'].tolist()
         values = df['Value'].tolist()
+        root = textIdx[np.where(np.isnan(parIdx) == True)[0][-1]]
 
         titleIdx = [i for i, title in enumerate(isTitle) if title == 'x']
         titleIdx.append(fileLen)
-
         for i in range(len(titleIdx) - 1):
             start, end = titleIdx[i:i+2]
             if end - start > 1:
-                parentIdx, level = findParent(start+1, textIdx, parIdx)
+                parentIdx, level = findParent(start+1, textIdx, parIdx, root=root)
                 if level == 1:
                     inputText = text[start:end]
                     textData.extend(setText(
@@ -203,6 +206,14 @@ def preprocess_new(path, files):
 
 if __name__ == "__main__":
     # textData = preprocess(config.train_path, config.train_files)
+    textData = preprocess_new(config.train_path, config.train_files)
+    with open("textData_train.pkl", 'wb') as f:
+        pickle.dump(textData, f)
+
+    textData = preprocess_new(config.dev_path, config.dev_files)
+    with open("textData_dev.pkl", 'wb') as f:
+        pickle.dump(textData, f)
+
     textData = preprocess_new(config.test_path, config.test_files)
     with open("textData_test.pkl", 'wb') as f:
         pickle.dump(textData, f)

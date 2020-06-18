@@ -25,6 +25,9 @@ class NERset(Dataset):
         tag_tokens_tensors = self.data[index]['tag']
         r_index = self.data[index]['index']
         r_index_bound = self.data[index]['index_bound']
+        text_decode = self.data[index]['text_decode']
+        tag_decode = self.data[index]['tag_decode']
+        filelen = self.data[index]['fileLen']
         if self.train_or_test=='train':
             start_label_ids = self.data[index]['val_start']
             end_label_ids = self.data[index]['val_end']
@@ -59,7 +62,7 @@ class NERset(Dataset):
             end_label_ids = -1
             
         
-        return (name,text_tag_tensors,segments_tensor,r_index,r_index_bound,answer_able,start_label_ids,end_label_ids)
+        return (name,text_tag_tensors,segments_tensor,r_index,r_index_bound,answer_able,start_label_ids,end_label_ids, text_decode, tag_decode, filelen)
         
 
     def __len__(self):
@@ -81,6 +84,9 @@ class NERset(Dataset):
         segments_tensors = [s[2] for s in samples]
         index = [s[3] for s in samples]
         index_bound = [s[4] for s in samples]
+        text_decode = [s[8] for s in samples]
+        tag_decode = [s[9] for s in samples]
+        filelen = [s[10] for s in samples]
         if self.train_or_test=='train':
             answerable = [s[5] for s in samples]
             start_tensors= [s[6] for s in samples]
@@ -101,7 +107,7 @@ class NERset(Dataset):
         
         
             
-        return name,text_tag_tensors,segments_tensors,masks_tensors,index,index_bound,answerable,start_tensors,end_tensors
+        return name,text_tag_tensors,segments_tensors,masks_tensors,index,index_bound,answerable,start_tensors,end_tensors, text_decode, tag_decode, filelen
 
 if __name__ == "__main__":
     ## usage of train

@@ -8,6 +8,9 @@ save_dir = './logs'
 train_path = "./release/train/ca_data/"
 train_files = os.listdir(train_path)
 
+dev_path = "./release/dev/ca_data/"
+dev_files = os.listdir(dev_path)
+
 test_path = "./release/test/ca_data/"
 test_files = os.listdir(test_path)
 
