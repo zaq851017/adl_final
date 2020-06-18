@@ -68,6 +68,8 @@ def setBound(texts):
 
 def setText(filename, texts, tags, values, textIdx, fileLen):
     index_bound = setBound(texts)
+    if len(textIdx) != len(index_bound):
+        print(f"ERROR: {filename}, {texts}, {textIdx}, {index_bound}")
 
     textStr = removeSpace(''.join(texts))
     textData = []
@@ -192,7 +194,8 @@ def preprocess_new(path, files):
         for i in range(len(titleIdx) - 1):
             start, end = titleIdx[i:i+2]
             if end - start > 1:
-                parentIdx, level = findParent(start+1, textIdx, parIdx, root=root)
+                parentIdx, level = findParent(
+                    start+1, textIdx, parIdx, root=root)
                 if level == 1:
                     inputText = text[start:end]
                     textData.extend(setText(
@@ -200,7 +203,7 @@ def preprocess_new(path, files):
                 else:
                     inputText = [text[parentIdx]] + text[start:end]
                     textData.extend(setText(
-                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start+1:end], fileLen))
+                        file, inputText, tags[start+1:end], values[start+1:end], textIdx[start:end], fileLen))
     return textData
 
 
