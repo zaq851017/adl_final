@@ -5,21 +5,25 @@ from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 
 class NERset(Dataset):
-    def __init__(self,mode):
-        with open("textData.pkl", "rb") as f:
+    def __init__(self,root,mode):
+        with open(root, "rb") as f:
             self.data = pickle.load(f)
-            self.train_or_test = mode
+        self.train_or_test = mode
 
     def __getitem__(self, index):
         # sample[0]:name
         # sample[1]:text_tag
         # sample[2]:segments_tensor
-        # sample[3]:answer_able
-        # sample[4]:start_label
-        # sample[5]:end_label
+        # sample[3]:index
+        # sample[4]:index_bound
+        # sample[5]:answer_able
+        # sample[6]:start_label
+        # sample[7]:end_label
         name = self.data[index]['file']
         text_tokens_tensors = self.data[index]['text']
         tag_tokens_tensors = self.data[index]['tag']
+        r_index = self.data[index]['index']
+        r_index_bound = self.data[index]['index_bound']
         if self.train_or_test=='train':
             start_label_ids = self.data[index]['val_start']
             end_label_ids = self.data[index]['val_end']
@@ -54,7 +58,7 @@ class NERset(Dataset):
             end_label_ids = -1
             
         
-        return (name,text_tag_tensors,segments_tensor,answer_able,start_label_ids,end_label_ids)
+        return (name,text_tag_tensors,segments_tensor,r_index,r_index_bound,answer_able,start_label_ids,end_label_ids)
         
 
     def __len__(self):
@@ -64,18 +68,22 @@ class NERset(Dataset):
         # sample[1]:text_tag
         # sample[2]:segments_tensor
         # sample[3]:mask_tensor
-        # sample[4]:answer_able
-        # sample[5]:start_label
-        # sample[6]:end_label
+        # sample[4]:index
+        # sample[5]:index_bound
+        # sample[6]:answer_able
+        # sample[7]:start_label
+        # sample[8]:end_label
        
         
         name = [s[0] for s in samples]
         text_tag_tensors = [s[1] for s in samples]
         segments_tensors = [s[2] for s in samples]
+        index = [s[3] for s in samples]
+        index_bound = [s[4] for s in samples]
         if self.train_or_test=='train':
-            answerable = [s[3] for s in samples]
-            start_tensors= [s[4] for s in samples]
-            end_tensors= [s[5] for s in samples]
+            answerable = [s[5] for s in samples]
+            start_tensors= [s[6] for s in samples]
+            end_tensors= [s[7] for s in samples]
             answerable = torch.tensor([i for i in (answerable)])
             start_tensors  = torch.tensor([i for i in (start_tensors)])
             end_tensors = torch.tensor([i for i in (end_tensors)])
@@ -90,15 +98,20 @@ class NERset(Dataset):
         masks_tensors = torch.zeros(text_tag_tensors.shape,dtype=torch.long)
         masks_tensors = masks_tensors.masked_fill(text_tag_tensors != 0, 1)
         
+        
             
-        return name,text_tag_tensors,segments_tensors,masks_tensors,answerable,start_tensors,end_tensors
+        return name,text_tag_tensors,segments_tensors,masks_tensors,index,index_bound,answerable,start_tensors,end_tensors
 
 if __name__ == "__main__":
-    
-    dataset = NERset('train')
+    ## usage of train
+    dataset = NERset(root='textData_new.pkl',mode='train')
     dataloader = DataLoader(dataset, batch_size=6, shuffle=False,collate_fn=dataset.create_mini_batch)
-    #dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
     for i,data in enumerate(dataloader):
         if data[1].shape[1] >500:
             print(data)
-            print(data[1].shape,data[2].shape,data[3].shape,data[4].shape,data[5].shape,data[6].shape)
+    ## usage of test
+    dataset = NERset(root='textData_test.pkl',mode='test')
+    dataloader = DataLoader(dataset, batch_size=6, shuffle=False,collate_fn=dataset.create_mini_batch)
+    for i,data in enumerate(dataloader):
+        if data[1].shape[1] >500:
+            print(data)
