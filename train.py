@@ -56,7 +56,7 @@ def train(args):
             sys.stdout.write("    Train Batch: {}/{}\r".format(batch, len(trainloader)))
             sys.stdout.flush()
             net.zero_grad()
-            name, text, seg, mask, index, index_bound, answerable, start, end = data
+            name, text, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = data
             text = text.to(device)
             seg = seg.to(device)
             mask = mask.to(device)

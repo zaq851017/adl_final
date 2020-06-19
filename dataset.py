@@ -4,6 +4,7 @@ import pickle
 from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 
+
 class NERset(Dataset):
     def __init__(self,mode):
         root = 'textData_' + mode + '.pkl'
@@ -28,7 +29,7 @@ class NERset(Dataset):
         text_decode = self.data[index]['text_decode']
         tag_decode = self.data[index]['tag_decode']
         filelen = self.data[index]['fileLen']
-        if self.train_or_test=='train':
+        if self.train_or_test=='train' or self.train_or_test=='dev':
             start_label_ids = self.data[index]['val_start']
             end_label_ids = self.data[index]['val_end']
             answer_able = self.data[index]['able']
@@ -87,7 +88,7 @@ class NERset(Dataset):
         text_decode = [s[8] for s in samples]
         tag_decode = [s[9] for s in samples]
         filelen = [s[10] for s in samples]
-        if self.train_or_test=='train':
+        if self.train_or_test=='train' or self.train_or_test=='dev':
             answerable = [s[5] for s in samples]
             start_tensors= [s[6] for s in samples]
             end_tensors= [s[7] for s in samples]

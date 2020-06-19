@@ -25,7 +25,7 @@ parser.add_argument('--batch_size', type=int)
 parser.add_argument('--threshold', type=float, default=0.5)
 parser.add_argument('--lr', type=float, default=0.00001)
 parser.add_argument('--weight_decay', type=float, default=0)
-parser.add_argument('--gpus', type=str, default='0,1,2', help='model prefix')
+parser.add_argument('--gpus', type=str, default='0', help='model prefix')
 parser.add_argument('--model', type=Path)
 
 args = parser.parse_args()
