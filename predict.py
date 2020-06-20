@@ -42,6 +42,10 @@ def predict(args):
                         answer.append([lastname+"-"+str(j+1), a])
                 filename.add(name[0][0:-9])
                 batchans = ['NONE'] * filelen[0]
+            df = pd.read_excel(os.path.join('release', args.mode, 'ca_data', name[0]))
+            new_index = []
+            for ii in index[0]:
+                new_index.append(df[df['Index']==ii].index.values[0])
             lastname = name[0][0:-9]
             text = text.to(device)
             seg = seg.to(device)
@@ -57,10 +61,10 @@ def predict(args):
                     for k, rr in enumerate(index_bound[j]):
                         if s in range(rr[0], rr[1]) or e - 1 in range(rr[0], rr[1]):
                             ans = tag_decode[j] + ':' + text_decode[j][max(s-1, rr[0]-1) : min(e-1,rr[1]-1)]
-                            if batchans[index[j][k] - 1] == 'NONE':
-                                batchans[index[j][k] - 1] = ans
+                            if batchans[new_index[k]] == 'NONE':
+                                batchans[new_index[k]] = ans
                             else:
-                                batchans[index[j][k] - 1] += " " + ans
+                                batchans[new_index[k]] += " " + ans
         for j, a in enumerate(batchans):
                 if len(filename) > 0:
                     answer.append([lastname+"-"+str(j+1), a])

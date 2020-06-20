@@ -45,7 +45,7 @@ def train(args):
 
     threshold = torch.tensor([args.threshold]).to(device)
     optimizer = optim.AdamW(net.parameters(),lr = args.lr, weight_decay=args.weight_decay)
-    criterion1 = nn.BCEWithLogitsLoss().to(device)
+    criterion1 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([args.pos_weight])).to(device)
     criterion2 = nn.CrossEntropyLoss(ignore_index=-1).to(device)
     print(root)
     for epoch in range(50):
@@ -88,7 +88,7 @@ def train(args):
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
-        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 1")
+        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 2")
         s= score('release/dev/dev_ref.csv','predict.csv')
         print("epoch: "+str(epoch)+"socre: "+str(s))
         log.writelines("\nscores: "+ str(s))
