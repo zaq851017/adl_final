@@ -88,7 +88,7 @@ def train(args):
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
-        os.system("python3 predict.py --model " + savepath +" --mode dev")
+        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 1")
         s= score('release/dev/dev_ref.csv','predict.csv')
         print("epoch: "+str(epoch)+"socre: "+str(s))
         log.writelines("\nscores: "+ str(s))

@@ -76,9 +76,8 @@ def predict(args):
                 path = "./release/dev/ca_data/"
             elif args.mode=="test":
                 path = "./release/test/ca_data/"
-            list_files = os.listdir(dev_path)
+            list_files = os.listdir(path)
             list_files.sort()
-            path = "./release/test/ca_data/"
             ll=[]
             for files in list_files:
                 df=pd.read_excel(path + files)
