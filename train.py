@@ -14,6 +14,7 @@ import ipdb
 import sys 
 from datetime import datetime
 from sklearn.metrics import precision_score, recall_score, f1_score
+from release.score import score
 
 
 def train(args):
@@ -88,8 +89,8 @@ def train(args):
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
         os.system("python predict.py --model " + savepath)
-        print(str(epoch)+" ")
-        os.system("python release/score.py release/dev/dev_ref.csv predict.csv")  
+        s= score('release/dev/dev_ref.csv','predict.csv')
+        log.writelines("scores: "+ str(s))
 
 if __name__ == '__main__':
     args = config.args
