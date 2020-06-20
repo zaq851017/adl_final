@@ -72,12 +72,15 @@ def predict(args):
             csvfile=open(args.output_file, 'w')
             writer = csv.writer(csvfile)
             writer.writerow(['ID','Prediction'])
-            test_path = "./release/test/ca_data/"
-            test_files = os.listdir(test_path)
-            test_files.sort()
+            if args.mode =="dev":
+                path = "./release/dev/ca_data/"
+            elif args.mode=="test":
+                path = "./release/test/ca_data/"
+            list_files = os.listdir(dev_path)
+            list_files.sort()
             path = "./release/test/ca_data/"
             ll=[]
-            for files in test_files:
+            for files in list_files:
                 df=pd.read_excel(path + files)
                 index_list = df['Index'].tolist()
                 for i in index_list:
