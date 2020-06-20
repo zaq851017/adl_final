@@ -15,6 +15,7 @@ import sys
 from datetime import datetime
 from sklearn.metrics import precision_score, recall_score, f1_score
 
+
 def train(args):
     root = str(datetime.now().strftime('%m%d_%H:%M'))
     log = open(os.path.join('log', root + ".log"), "w")
@@ -45,8 +46,8 @@ def train(args):
     optimizer = optim.AdamW(net.parameters(),lr = args.lr, weight_decay=args.weight_decay)
     criterion1 = nn.BCEWithLogitsLoss().to(device)
     criterion2 = nn.CrossEntropyLoss(ignore_index=-1).to(device)
-
-    for epoch in range(20):
+    print(root)
+    for epoch in range(50):
         print("Epoch: {}".format(epoch))
         log.writelines("Epoch: {}\n".format(epoch))
         train_loss = 0
@@ -85,8 +86,12 @@ def train(args):
         savepath = os.path.join(root, str(epoch)+'.pth')
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
-        torch.save(net.state_dict(), savepath)   
+        torch.save(net.state_dict(), savepath) 
+        os.system("python predict.py --model " + savepath)
+        print(str(epoch)+" ")
+        os.system("python release/score.py release/dev/dev_ref.csv predict.csv")  
 
 if __name__ == '__main__':
     args = config.args
     train(args)
+    
