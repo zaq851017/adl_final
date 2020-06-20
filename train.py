@@ -81,7 +81,7 @@ def train(args):
             train_loss += loss
             sys.stdout.write("    Train Batch: {}/{}, Batch Loss: {:.6f}({:.6f}, {:.6f}, {:.6f})\r".format(batch, len(trainloader), loss.item(), loss1.item(), loss2.item(), loss3.item()))
             sys.stdout.flush() 
-
+        torch.cuda.empty_cache()
         print("\n    Train loss: {}".format(train_loss/len(trainloader)))
         log.writelines("    Train loss: {}\n".format(train_loss/len(trainloader)))
         savepath = os.path.join(root, str(epoch)+'.pth')
