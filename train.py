@@ -91,7 +91,7 @@ def train(args):
         os.system("python3 predict.py --model " + savepath)
         s= score('release/dev/dev_ref.csv','predict.csv')
         print(str(epoch)+"socre: "+str(s))
-        log.writelines("scores: "+ str(s))
+        log.writelines("\nscores: "+ str(s))
 
 if __name__ == '__main__':
     args = config.args

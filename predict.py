@@ -17,12 +17,13 @@ import csv
 from datetime import datetime
 from sklearn.metrics import precision_score, recall_score, f1_score
 from tqdm import tqdm
+import pandas as pd
 
 def predict(args):
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(device)
-        dataset = NERset(mode='dev')
+        dataset = NERset(mode=args.mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = dataset.create_mini_batch)
         threshold = torch.tensor([args.threshold]).to(device)
         net = NERnet().to(device)
@@ -60,9 +61,35 @@ def predict(args):
                                 batchans[index[j][k] - 1] = ans
                             else:
                                 batchans[index[j][k] - 1] += " " + ans
-        with open('predict.csv', 'w', newline='') as csvfile:
+        for j, a in enumerate(batchans):
+                if len(filename) > 0:
+                    answer.append([lastname+"-"+str(j+1), a])
+        with open("tmp_file", 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(answer)
+        with open("tmp_file") as csvfile:
+            rows = csv.reader(csvfile)
+            csvfile=open(args.output_file, 'w')
+            writer = csv.writer(csvfile)
+            writer.writerow(['ID','Prediction'])
+            test_path = "./release/test/ca_data/"
+            test_files = os.listdir(test_path)
+            test_files.sort()
+            path = "./release/test/ca_data/"
+            ll=[]
+            for files in test_files:
+                df=pd.read_excel(path + files)
+                index_list = df['Index'].tolist()
+                for i in index_list:
+                    ll.append(files[0:-9]+"-"+str(i))
+            print(len(ll))
+            for i,row in enumerate(rows):
+                if i==0:
+                    continue
+                else:
+                    #print(ll[i-1])
+                    row[0] = ll[i-1]
+                    writer.writerow(row)
 if __name__ == '__main__':
     args = config.args
     predict(args)
