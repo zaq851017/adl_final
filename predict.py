@@ -16,12 +16,13 @@ import sys
 import csv
 from datetime import datetime
 from sklearn.metrics import precision_score, recall_score, f1_score
+from tqdm import tqdm
 
 def predict(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     dataset = NERset(mode='dev')
-    dataloader = DataLoader(dataset, batch_size=5, shuffle=False, collate_fn = dataset.create_mini_batch)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = dataset.create_mini_batch)
     threshold = torch.tensor([args.threshold]).to(device)
     net = NERnet().to(device)
     net.load_state_dict(torch.load(args.model))
@@ -30,7 +31,7 @@ def predict(args):
     answer = [['ID', 'Prediction']]
     batchans = []
     lastname = ''
-    for batch in dataloader:
+    for batch in tqdm(dataloader):
         name, text, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = batch
         #name = name[0][0:-9]
         if name[0][0:-9] not in filename:

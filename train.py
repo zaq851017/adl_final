@@ -88,8 +88,9 @@ def train(args):
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
-        os.system("python predict.py --model " + savepath)
+        os.system("python3 predict.py --model " + savepath)
         s= score('release/dev/dev_ref.csv','predict.csv')
+        print(str(epoch)+"socre: "+str(s))
         log.writelines("scores: "+ str(s))
 
 if __name__ == '__main__':
