@@ -209,14 +209,15 @@ def preprocess_new(path, files):
 
 if __name__ == "__main__":
     # textData = preprocess(config.train_path, config.train_files)
+    config.train_files.sort()
     textData = preprocess_new(config.train_path, config.train_files)
     with open("textData_train.pkl", 'wb') as f:
         pickle.dump(textData, f)
-
+    config.dev_files.sort()
     textData = preprocess_new(config.dev_path, config.dev_files)
     with open("textData_dev.pkl", 'wb') as f:
         pickle.dump(textData, f)
-
+    config.test_files.sort()
     textData = preprocess_new(config.test_path, config.test_files)
     with open("textData_test.pkl", 'wb') as f:
         pickle.dump(textData, f)
