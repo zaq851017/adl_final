@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn as nn
 from transformers import BertTokenizer, BertModel
 from dataset import NERset
-from backbone import NERnet
+from backbone import NERnet, NERcnn
 import config
 import ipdb
 import sys 

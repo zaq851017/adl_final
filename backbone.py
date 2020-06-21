@@ -58,10 +58,11 @@ class NERcnn(nn.Module):
         out2 = [conv(out) for conv in self.convs2]
         output2 = out2[0]
         for i in range(1, len(out2)):
-            output2[:, :, :-i] += out2[i]
+            output2[:, :, :-i] = (output2[:, :, :-i] * i + out2[i]) / (i + 1)
 
         out3 = [conv(out) for conv in self.convs3]
         output3 = out3[0]
         for i in range(1, len(out3)):
-            output3[:, :, :-i] += out3[i]
+            output3[:, :, :-i] = (output3[:, :, :-i] * i + out3[i]) / (i + 1)
+
         return output1, output2.transpose(1,2), output3.transpose(1,2)
