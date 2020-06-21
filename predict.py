@@ -21,12 +21,17 @@ import pandas as pd
 
 def predict(args):
     with torch.no_grad():
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(device)
         dataset = NERset(mode=args.mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = dataset.create_mini_batch)
         threshold = torch.tensor([args.threshold]).to(device)
-        net = NERnet().to(device)
+        if args.backbone == 'cnn':
+            net = NERcnn()
+        else:
+            net = NERnet()
+        net.to(device)
         net.load_state_dict(torch.load(args.model))
         net.eval()
         filename = set()

@@ -8,7 +8,7 @@ import torch.nn.utils.rnn as rnn_utils
 import torch.optim as optim
 import torch.nn as nn
 from dataset import NERset
-from backbone import NERnet
+from backbone import NERnet, NERcnn
 import config
 import ipdb
 import sys 
@@ -37,7 +37,10 @@ def train(args):
     #validset = NERset(mode='test')
     #validloader = DataLoader(validset, batch_size=1, shuffle=False, collate_fn = trainset.create_mini_batch)
 
-    net = NERnet()
+    if args.backbone == 'cnn':
+        net = NERcnn()
+    else:
+        net = NERnet()
     if multi_gpus:
         net = nn.DataParallel(net).to(device)
     else:
@@ -88,7 +91,7 @@ def train(args):
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
-        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 2")
+        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 2" + "--backbone " + args.backbone)
         s= score('release/dev/dev_ref.csv','predict.csv')
         print("epoch: "+str(epoch)+"socre: "+str(s))
         log.writelines("\nscores: "+ str(s))

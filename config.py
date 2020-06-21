@@ -28,6 +28,7 @@ parser.add_argument('--weight_decay', type=float, default=0)
 parser.add_argument('--pos_weight', type=float, default=1)
 parser.add_argument('--gpus', type=str, default='0', help='model prefix')
 parser.add_argument('--model', type=Path)
+parser.add_argument('--backbone',type=str,default='bert')
 parser.add_argument('--mode',type=str,default='dev')
 parser.add_argument('--output_file',type=str,default='predict.csv')
 
