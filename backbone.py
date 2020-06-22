@@ -66,3 +66,24 @@ class NERcnn(nn.Module):
             output3[:, :, :-i] = (output3[:, :, :-i] * i + out3[i]) / (i + 1)
 
         return output1, output2.transpose(1,2), output3.transpose(1,2)
+
+class dualBERT(nn.Module):
+    def __init__(self):
+        super(dualBERT, self).__init__()
+        self.bert_char = BertModel.from_pretrained(config.bert_char)
+        self.bert_word = BertModel.from_pretrained(config.bert)
+        self.l1 = nn.Linear(768*2, 1)
+        self.l2 = nn.Linear(768*2, 1)
+        self.l3 = nn.Linear(768*2, 1)
+
+    def forward(self, text, word, seg, mask):
+        outputs_char = self.bert_char(text, token_type_ids=seg, attention_mask=mask)
+        outputs_word = self.bert_word(word, token_type_ids=seg, attention_mask=mask)
+        bound = max([(t==1).nonzero()[0] for t in seg])
+        output_char = outputs_char[0].transpose(1, 0)[:bound].transpose(1, 0)
+        output_word = outputs_word[0].transpose(1, 0)[:bound].transpose(1, 0)
+        output1 = self.l1(torch.cat((outputs_char[1], outputs_word[1]), dim=1))
+        output2 = self.l2(torch.cat((output_char, output_word), dim=2)) #start
+        output3 = self.l3(torch.cat((output_char, output_word), dim=2)) #end
+
+        return output1, output2, output3

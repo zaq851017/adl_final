@@ -8,7 +8,7 @@ import torch.nn.utils.rnn as rnn_utils
 import torch.optim as optim
 import torch.nn as nn
 from dataset import NERset
-from backbone import NERnet, NERcnn
+from backbone import NERnet, NERcnn, dualBERT
 import config
 import ipdb
 import sys 
@@ -39,6 +39,8 @@ def train(args):
 
     if args.backbone == 'cnn':
         net = NERcnn()
+    elif args.backbone == 'duelbert':
+        net = dualBERT()
     else:
         net = NERnet()
     if multi_gpus:
@@ -61,11 +63,15 @@ def train(args):
             sys.stdout.write("    Train Batch: {}/{}\r".format(batch, len(trainloader)))
             sys.stdout.flush()
             net.zero_grad()
-            name, text, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = data
+            name, text, word, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = data
             text = text.to(device)
+            word = word.to(device)
             seg = seg.to(device)
             mask = mask.to(device)
-            output1, output2, output3 = net(text, seg, mask)
+            if args.backbone == 'duelbert':
+                output1, output2, output3 = net(text, word, seg, mask)
+            else:
+                output1, output2, output3 = net(text, seg, mask)
             #ipdb.set_trace()
             #answerable = torch.tensor(answerable.clone().detach(), dtype=torch.float).to(device) 
             answerable = answerable.float().to(device)
