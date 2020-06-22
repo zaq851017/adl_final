@@ -123,7 +123,7 @@ class NERset(Dataset):
         
         
             
-        return name,text_tag_tensors,segments_tensors,masks_tensors,index,index_bound,answerable,start_tensors,end_tensors, text_decode, tag_decode, filelen
+        return name,text_tag_tensors,word_tag_tensors,segments_tensors,masks_tensors,index,index_bound,answerable,start_tensors,end_tensors, text_decode, tag_decode, filelen
 
 if __name__ == "__main__":
     ## usage of train
