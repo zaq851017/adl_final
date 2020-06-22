@@ -41,6 +41,16 @@ def predict(args):
         for batch in tqdm(dataloader):
             name, text, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = batch
             #name = name[0][0:-9]
+            if tag_decode[0] == '質問箇所　ＴＥＬ／ＦＡＸ':
+                tag_decode[0] = '質問箇所TEL/FAX'
+            if tag_decode[0] == '需要場所（住所）':
+                tag_decode[0] = '需要場所(住所)'
+            if tag_decode[0] == '質問箇所所属／担当者':
+                tag_decode[0] = '質問箇所所属/担当者'
+            if tag_decode[0] == '資格申請送付先　部署／担当者名':
+                tag_decode[0] = '資格申請送付先部署/担当者名'
+            if tag_decode[0] == '入札書送付先　部署／担当者名':
+                tag_decode[0] = '入札書送付先部署/担当者名'
             if name[0][0:-9] not in filename:
                 for j, a in enumerate(batchans):
                     if len(filename) > 0:
@@ -63,6 +73,8 @@ def predict(args):
                 if a == 1:
                     s = start[1][j]
                     e = end[1][j]
+                    if s >= e:
+                        continue
                     for k, rr in enumerate(index_bound[j]):
                         if s in range(rr[0], rr[1]) or e - 1 in range(rr[0], rr[1]):
                             ans = tag_decode[j] + ':' + text_decode[j][max(s-1, rr[0]-1) : min(e-1,rr[1]-1)]
