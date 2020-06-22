@@ -54,7 +54,14 @@ def predict(args):
             if name[0][0:-9] not in filename:
                 for j, a in enumerate(batchans):
                     if len(filename) > 0:
-                        answer.append([lastname+"-"+str(j+1), a])
+                        if a == 'NONE':
+                            answer.append([lastname+"-"+str(j+1), a])
+                        else:
+                            a.sort(key = lambda tup: tup[1])
+                            ans = ''
+                            for t in a:
+                                ans += t[0] + " "
+                            answer.append([lastname+"-"+str(j+1), ans[:-1]])
                 filename.add(name[0][0:-9])
                 batchans = ['NONE'] * filelen[0]
             df = pd.read_excel(os.path.join('release', args.mode, 'ca_data', name[0]))
@@ -79,12 +86,19 @@ def predict(args):
                         if s in range(rr[0], rr[1]) or e - 1 in range(rr[0], rr[1]):
                             ans = tag_decode[j] + ':' + text_decode[j][max(s-1, rr[0]-1) : min(e-1,rr[1]-1)]
                             if batchans[new_index[k]] == 'NONE':
-                                batchans[new_index[k]] = ans
+                                batchans[new_index[k]] = [(ans, s)]
                             else:
-                                batchans[new_index[k]] += " " + ans
+                                #batchans[new_index[k]] += " " + ans
+                                batchans[new_index[k]].append((ans, s))
         for j, a in enumerate(batchans):
-                if len(filename) > 0:
-                    answer.append([lastname+"-"+str(j+1), a])
+            if a == 'NONE':
+                answer.append([lastname+"-"+str(j+1), a])
+            else:
+                a.sort(key = lambda tup: tup[1])
+                ans = ''
+                for t in a:
+                    ans += t[0] + " "
+                answer.append([lastname+"-"+str(j+1), ans[:-1]])
         with open("tmp_file", 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(answer)
