@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn as nn
 from transformers import BertTokenizer, BertModel
 from dataset import NERset
-from backbone import NERnet, NERcnn
+from backbone import NERnet, NERcnn, dualBERT
 import config
 import ipdb
 import sys 
@@ -29,6 +29,8 @@ def predict(args):
         threshold = torch.tensor([args.threshold]).to(device)
         if args.backbone == 'cnn':
             net = NERcnn()
+        elif args.backbone == 'dualbert':
+            net = dualBERT()
         else:
             net = NERnet()
         net.to(device)
@@ -39,7 +41,7 @@ def predict(args):
         batchans = []
         lastname = ''
         for batch in tqdm(dataloader):
-            name, text, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = batch
+            name, text, word, seg, mask, index, index_bound, answerable, start, end, text_decode, tag_decode, filelen = batch
             #name = name[0][0:-9]
             if tag_decode[0] == '質問箇所　ＴＥＬ／ＦＡＸ':
                 tag_decode[0] = '質問箇所TEL/FAX'
@@ -70,9 +72,13 @@ def predict(args):
                 new_index.append(df[df['Index']==ii].index.values[0])
             lastname = name[0][0:-9]
             text = text.to(device)
+            word = word.to(device)
             seg = seg.to(device)
             mask = mask.to(device)
-            output1, output2, output3 = net(text, seg, mask)
+            if args.backbone == 'dualbert':
+                output1, output2, output3 = net(text, word, seg, mask)
+            else:
+                output1, output2, output3 = net(text, seg, mask)
             answerable = (torch.sigmoid(output1)>threshold).float().view(-1)
             start = torch.topk(output2.squeeze(-1), k=1, dim=1)
             end = torch.topk(output3.squeeze(-1), k=1, dim=1)

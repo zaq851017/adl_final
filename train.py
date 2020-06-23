@@ -39,7 +39,7 @@ def train(args):
 
     if args.backbone == 'cnn':
         net = NERcnn()
-    elif args.backbone == 'duelbert':
+    elif args.backbone == 'dualbert':
         net = dualBERT()
     else:
         net = NERnet()
@@ -52,6 +52,7 @@ def train(args):
     optimizer = optim.AdamW(net.parameters(),lr = args.lr, weight_decay=args.weight_decay)
     criterion1 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([args.pos_weight])).to(device)
     criterion2 = nn.CrossEntropyLoss(ignore_index=-1).to(device)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 6, 9], gamma=0.1)
     print(root)
     for epoch in range(50):
         print("Epoch: {}".format(epoch))
@@ -68,7 +69,7 @@ def train(args):
             word = word.to(device)
             seg = seg.to(device)
             mask = mask.to(device)
-            if args.backbone == 'duelbert':
+            if args.backbone == 'dualbert':
                 output1, output2, output3 = net(text, word, seg, mask)
             else:
                 output1, output2, output3 = net(text, seg, mask)
@@ -90,6 +91,7 @@ def train(args):
             train_loss += loss
             sys.stdout.write("    Train Batch: {}/{}, Batch Loss: {:.6f}({:.6f}, {:.6f}, {:.6f})\r".format(batch, len(trainloader), loss.item(), loss1.item(), loss2.item(), loss3.item()))
             sys.stdout.flush() 
+        scheduler.step()
         torch.cuda.empty_cache()
         print("\n    Train loss: {}".format(train_loss/len(trainloader)))
         log.writelines("    Train loss: {}\n".format(train_loss/len(trainloader)))
@@ -97,7 +99,7 @@ def train(args):
         print("Save model: {}".format(savepath))
         log.writelines("Save model: {}".format(savepath))
         torch.save(net.state_dict(), savepath) 
-        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus 2" + " --backbone " + args.backbone)
+        os.system("python3 predict.py --model " + savepath +" --mode dev"+" --gpus " + args.gpus + " --backbone " + args.backbone)
         s= score('release/dev/dev_ref.csv','predict.csv')
         print("epoch: "+str(epoch)+"socre: "+str(s))
         log.writelines("\nscores: "+ str(s))
