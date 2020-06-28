@@ -19,6 +19,8 @@ def score(ref_file, pred_file):
         pred_data = list(reader)
 
     f_score = 0.0
+    p_score = 0.0
+    r_score = 0.0
     for ref_row, pred_row in zip(ref_data, pred_data):
         refs = set(ref_row["Prediction"].split())
         preds = set(pred_row["Prediction"].split())
@@ -27,8 +29,10 @@ def score(ref_file, pred_file):
         r = len(refs.intersection(preds)) / len(refs) if len(refs) > 0 else 0.0
         f = 2*p*r / (p+r) if p + r > 0 else 0
         f_score += f
+        p_score += p
+        r_score += r
 
-    return f_score / len(ref_data)
+    return f_score / len(ref_data), p_score / len(ref_data), r_score / len(ref_data)
 
 
 if __name__ == "__main__":
@@ -38,5 +42,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    s = score(args.ref_file, args.pred_file)
-    print(s)
+    f, p, r = score(args.ref_file, args.pred_file)
+    print("F1: {}, Precision: {}, Recall: {}".format(f, p, r))

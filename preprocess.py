@@ -199,15 +199,19 @@ def preprocess_new(path, files):
 
 
 if __name__ == "__main__":
-    config.train_files.sort()
-    textData = preprocess_new(config.train_path, config.train_files)
-    with open("textData_train.pkl", 'wb') as f:
-        pickle.dump(textData, f)
-    config.dev_files.sort()
-    textData = preprocess_new(config.dev_path, config.dev_files)
-    with open("textData_dev.pkl", 'wb') as f:
-        pickle.dump(textData, f)
-    config.test_files.sort()
-    textData = preprocess_new(config.test_path, config.test_files)
-    with open("textData_test.pkl", 'wb') as f:
-        pickle.dump(textData, f)
+    args = config.args
+    if len(args.train_path) > 0:
+        config.train_files.sort()
+        textData = preprocess_new(config.train_path, config.train_files)
+        with open("textData_train.pkl", 'wb') as f:
+            pickle.dump(textData, f)
+    if len(args.dev_path) > 0:
+        config.dev_files.sort()
+        textData = preprocess_new(config.dev_path, config.dev_files)
+        with open("textData_dev.pkl", 'wb') as f:
+            pickle.dump(textData, f)
+    if len(args.test_path) > 0:
+        config.test_files.sort()
+        textData = preprocess_new(config.test_path, config.test_files)
+        with open("textData_test.pkl", 'wb') as f:
+            pickle.dump(textData, f)

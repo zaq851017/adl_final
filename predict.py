@@ -66,7 +66,11 @@ def predict(args):
                             answer.append([lastname+"-"+str(j+1), ans[:-1]])
                 filename.add(name[0][0:-9])
                 batchans = ['NONE'] * filelen[0]
-            df = pd.read_excel(os.path.join('release', args.mode, 'ca_data', name[0]))
+            if args.mode =="dev":
+                df = pd.read_excel(os.path.join(args.dev_path, 'ca_data', name[0]))
+            else:
+                df = pd.read_excel(os.path.join(args.test_path, 'ca_data', name[0]))
+            
             new_index = []
             for ii in index[0]:
                 new_index.append(df[df['Index']==ii].index.values[0])
@@ -114,9 +118,9 @@ def predict(args):
             writer = csv.writer(csvfile)
             writer.writerow(['ID','Prediction'])
             if args.mode =="dev":
-                path = "./release/dev/ca_data/"
+                path = config.dev_path
             elif args.mode=="test":
-                path = "./release/test/ca_data/"
+                path = config.test_path
             list_files = os.listdir(path)
             list_files.sort()
             ll=[]
